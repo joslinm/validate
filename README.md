@@ -27,7 +27,7 @@ type CustomCallback func(value interface{}) bool
 If a property isn't set, it's not evaluated. 
 
 When the data is validated and the `Is` member is set, the value will be coerced into the expecting type.
-For example, a string value will be coerced to an integer and returned in the dictionary from `dict, err := validate.Data(input).With(rules)` will contain values typed accordingly. 
+For example, a string value will be coerced to an integer and returned in the dictionary from `dict, err := validate.Data(input).With(rules)`
 
 Rules are best built using the [builder](https://github.com/lann/builder).
 
