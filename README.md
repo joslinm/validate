@@ -77,9 +77,8 @@ You don't really need to create a bunch of rule variables though. You can just d
 ```
 
 ```go
-// let's setup a required rule template and just keep re-using it
-required := RuleBuilder.Required(true)
-// our adult filter
+optional := validate.RuleBuilder
+required := validate.RuleBuilder.Required()
 adult_filter := func (genre string) bool {
     if genre == "Adult" { // keep the bad stuff out
       return false
@@ -91,7 +90,7 @@ rules := RuleBook{
   "genre": required.Custom(adult_filter),
   "adult": required.Boolean()
   "release": required.After(time.Time.Now()).Before(time.Time.Now() + 100)
-  "duration": Rule.Min(5).Max(10) // or .Between(5, 10)
+  "duration": optional.Min(5).Max(10) // or .Between(5, 10)
   },
 } 
 params, err = validate.Data(input).With(rules)
