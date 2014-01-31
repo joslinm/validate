@@ -44,16 +44,16 @@ Rules are best built using the [builder](https://github.com/lann/builder).
   })
 ```
 
-But you're probably going to be defining a lot, so it's better you reuse builders.
+But you're probably going to be defining a lot of rules, so it's better you reuse builder(s).
 
 ```go
-  required := validate.RuleBuilder.Required(true)
-  optional := validate.RuleBuilder.Required(false) // or required.Required(false) if you want to be silly
+  required := validate.RuleBuilder.Required()
+  optional := validate.RuleBuilder
 
   // then define rules on top of them..
   // just demonstrations; usually you'll make these calls in the RuleBook
   date := required.Date()
-  minRule := required.Min(0) // type will automatically be set to Int
+  minRule := required.Min(1) // type will automatically be set to Int
   rangeRule :=  required.Between(5.5, 7.5) // type will be set to Float 
   emailRule = optional.Email() // helper builder functions like this pre-set values. in this case regex becomes an email regex
 ```
