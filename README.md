@@ -102,9 +102,7 @@ if (err != nil) {
 
 RuleBook template from struct
 -----
-Perhaps you already have a struct and want a RuleBook right quick. Just pass an empty struct and you'll get a RuleBook with rules for 
-all recognized types. For example, below, the rule would be `RuleBuilder.Required().String()`. After you get your RuleBook ( `map[string]*Rule` ) back, you
-can modify any rules just as you would above.
+Perhaps you already have a struct and want a RuleBook right quick. Just pass an empty struct and you'll get a RuleBook with rules for all recognized types. After you get your RuleBook  back, you can modify any rules just as you would above.
 
 ```go
   type UserParams struct {
@@ -115,7 +113,7 @@ can modify any rules just as you would above.
   }
   
   rules = validate.RuleBookFor(&UserParams{}, true) // mark them all required
-  rules["email"].Email()
+  rules["email"].(validate.RuleBuilder).Email()
   params, err := validate.Data(input).With(rules)
 ```
 
