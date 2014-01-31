@@ -100,15 +100,6 @@ if (err != nil) {
 }
 ```
 
-There's also helper functions to make your life easier:
-
-```go
-  expecting := RuleBook {
-    "email": RuleBuilder.Email().Required() 
-  } 
-```
-
-
 RuleBook template from struct
 -----
 Perhaps you already have a struct and want a RuleBook right quick. Just pass an empty struct and you'll get a RuleBook with rules for 
