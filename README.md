@@ -1,4 +1,3 @@
-
 Usage:
 
 So, you have to pass a dictionary containing some rules. We call this the RuleBook.
@@ -26,7 +25,7 @@ A rule is a pretty simple data structure:
     Prepares []PrepareCallback
     Alters   []AlterCallback
   }
-`
+```
 
 If a property isn't set, it's not evaluated. 
 
@@ -49,7 +48,7 @@ Rules are best built using the [builder](https://github.com/lann/builder).
     }
     return true
   }
-`
+```
 
 But you're probably going to be defining a lot, so it's better you reuse builders.
 
@@ -63,7 +62,7 @@ But you're probably going to be defining a lot, so it's better you reuse builder
   minRule := required.Min(0) // type will automatically be set to Int
   rangeRule :=  required.Between(5.5, 7.5) // type will be set to Float 
   emailRule = optional.Email() // helper builder functions like this pre-set values. in this case regex becomes an email regex
-`
+```
 
 You don't really need to create a bunch of rule variables though. You can just do something like this:
 
@@ -81,7 +80,7 @@ You don't really need to create a bunch of rule variables though. You can just d
     "iq": optional.Max(100) // keep out the smart people
   }
   params, err := validate.Data(data).With(rules) 
-`
+```
 
 ```
 // let's setup a required rule template and just keep re-using it
@@ -106,14 +105,15 @@ if (err != nil) {
   fmt.Println("Error! ", err)
   // Handle err..
 }
-`
+```
 
 There's also helper functions to make your life easier:
 
 ```
   expecting := RuleBook {
     "email": RuleBuilder.Email().Required() 
-  } `
+  } 
+```
 
 
 RuleBook template from struct
@@ -133,7 +133,7 @@ can modify any rules just as you would above.
   rules = validate.RuleBookFor(&UserParams{}, true) // mark them all required
   rules["email"].Email()
   params, err := validate.Data(input).With(rules)
-`
+```
 
 Recognized Types
 ------
@@ -160,7 +160,7 @@ params, err := validate.Data(map[string]interface{}{
         "end": RuleBuilder.Required().Date()
       }
   })
-`
+```
 
 Pre/Post Processing
 --------
@@ -180,5 +180,5 @@ lc_then_uc := validate.RuleBuilder.Required().Prepare(func(val interface{}) inte
   // Upper case code
   return val
 })
-`
+```
 
