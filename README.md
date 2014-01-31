@@ -76,30 +76,6 @@ You don't really need to create a bunch of rule variables though. You can just d
   params, err := validate.Data(data).With(rules) 
 ```
 
-```go
-optional := validate.RuleBuilder
-required := validate.RuleBuilder.Required()
-adult_filter := func (genre string) bool {
-    if genre == "Adult" { // keep the bad stuff out
-      return false
-    }
-    return true
-}
-rules := RuleBook{
-  "title": required.Regex("[A-Z]\\w+"),
-  "genre": required.Custom(adult_filter),
-  "adult": required.Boolean()
-  "release": required.After(time.Time.Now()).Before(time.Time.Now() + 100)
-  "duration": optional.Min(5).Max(10) // or .Between(5, 10)
-  },
-} 
-params, err = validate.Data(input).With(rules)
-if (err != nil) {
-  fmt.Println("Error! ", err)
-  // Handle err..
-}
-```
-
 RuleBook template from struct
 -----
 Perhaps you already have a struct and want a RuleBook right quick. Just pass an empty struct and you'll get a RuleBook with rules for all recognized types. After you get your RuleBook  back, you can modify any rules just as you would above.
