@@ -1,12 +1,8 @@
-
 *Under Construction*
 
 Rules
 ------
-There are rules for your input. Let's define some.
-
-
-A rule is a pretty simple data structure:
+There are rules for your input. A rule is a pretty simple data structure:
 ```go
 
 type AlterCallback func(value interface{}) interface{}
