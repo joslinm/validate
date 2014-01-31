@@ -1,9 +1,4 @@
-Usage:
-
-So, you have to pass a dictionary containing some rules. We call this the RuleBook.
 ** Under Construction **
-
-Here's an example of a rule book that ensures the input contains a title & genre key with an optional duration integer. 
 
 Rules
 ------
