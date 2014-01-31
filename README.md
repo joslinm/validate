@@ -6,7 +6,12 @@ There are rules for your input. Let's define some.
 
 
 A rule is a pretty simple data structure:
-```
+```go
+
+type AlterCallback func(value interface{}) interface{}
+type PrepareCallback func(value interface{}) interface{}
+type CustomCallback func(value interface{}) bool
+
   type Rule struct {
     Key      string
     Is       string 
@@ -32,7 +37,7 @@ values typed accordingly.
 
 Rules are best built using the [builder](https://github.com/lann/builder).
 
-```
+```go
   // simple
   stringRule := validate.RuleBuilder.String()
 
@@ -42,12 +47,12 @@ Rules are best built using the [builder](https://github.com/lann/builder).
       return false
     }
     return true
-  }
+  })
 ```
 
 But you're probably going to be defining a lot, so it's better you reuse builders.
 
-```
+```go
   required := validate.RuleBuilder.Required(true)
   optional := validate.RuleBuilder.Required(false) // or required.Required(false) if you want to be silly
 
@@ -77,7 +82,7 @@ You don't really need to create a bunch of rule variables though. You can just d
   params, err := validate.Data(data).With(rules) 
 ```
 
-```
+```go
 // let's setup a required rule template and just keep re-using it
 required := RuleBuilder.Required(true)
 // our adult filter
@@ -104,7 +109,7 @@ if (err != nil) {
 
 There's also helper functions to make your life easier:
 
-```
+```go
   expecting := RuleBook {
     "email": RuleBuilder.Email().Required() 
   } 
