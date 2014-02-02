@@ -71,7 +71,7 @@ You don't really need to create a bunch of rule variables though. You can just d
     "age": optional.Between(0, 150), // range of ints
     "born": optional.Between(time.Parse("1900-Jan-01"), time.Now()), // range of dates
     "iq": optional.Max(100) // keep out the smart people
-  }
+  })
   
   // use your params...
 ```
