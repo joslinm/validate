@@ -7,8 +7,6 @@ import (
 	"time"
 )
 
-// request
-
 func Test(t *testing.T) {
 	g := Goblin(t)
 	g.Describe("Rules", func() {

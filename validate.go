@@ -219,20 +219,6 @@ func (rb ruleBuilder) Between(min interface{}, max interface{}) ruleBuilder {
 	return rb
 }
 
-// date
-func (rb ruleBuilder) Before(time time.Time) ruleBuilder {
-	return builder.Set(rb, "Before", time).(ruleBuilder)
-}
-func (rb ruleBuilder) After(time time.Time) ruleBuilder {
-	return builder.Set(rb, "After", time).(ruleBuilder)
-}
-func (rb ruleBuilder) BetweenTimes(min time.Time, max time.Time) ruleBuilder {
-	builder.Set(rb, "Before", max)
-	builder.Set(rb, "After", min)
-
-	return rb
-}
-
 // callback
 func (rb ruleBuilder) Custom(cb CustomCallback) ruleBuilder {
 	return builder.Append(rb, "Customs", cb).(ruleBuilder)
