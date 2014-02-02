@@ -64,8 +64,7 @@ You don't really need to create a bunch of rule variables though. You can just d
   required := validate.RuleBuilder.Required()
   optional := validate.RuleBuilder
 
-  // all this really is just a `map[string]interface{}` 
-  rules := validate.RuleBook {
+  params, err := validate.Data(data).With(validate.RuleBook {
     "first_name": required.String(),
     "last_name": required.String().Regex("\\w+"),
     "email": optional.Email(),
@@ -73,7 +72,8 @@ You don't really need to create a bunch of rule variables though. You can just d
     "born": optional.Between(time.Parse("1900-Jan-01"), time.Now()), // range of dates
     "iq": optional.Max(100) // keep out the smart people
   }
-  params, err := validate.Data(data).With(rules) 
+  
+  // use your params...
 ```
 
 RuleBook template from struct
