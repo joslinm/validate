@@ -58,6 +58,21 @@ func Test(t *testing.T) {
 			validate.RuleBuilder.Min(5).Max(time.Now()).Build()
 		})
 
+		g.It("Should be able to process a non-map input if key isn't set", func() {
+		})
+
+		g.It("Should reject processing an input that does not correspond with its type", func() {
+		})
+
+		g.It("Should process its output given an input", func() {
+			rule := validate.RB.Min(5).Max(10).Key("Hi").Build()
+			input := map[string]interface{}{"Hi": 6}
+			rule.Input = &input
+			rule.Process()
+
+			g.Assert(rule.Results != nil).IsTrue()
+		})
+
 	})
 
 	g.Describe("Validation", func() {

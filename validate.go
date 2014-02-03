@@ -7,16 +7,17 @@ import (
 	"log"
 	_ "net/http"
 	"reflect"
-	"regexp"
 	"time"
 )
 
 // Types validate supports
 const (
 	Unknown = iota
-	String
 	Number
+	Integer
+	Float
 	Bool
+	String
 	Time
 )
 
@@ -25,20 +26,9 @@ type AlterCallback func(value interface{}) interface{}
 type PrepareCallback func(value interface{}) interface{}
 type CustomCallback func(value interface{}) bool
 
-// Rule encompasses a single validation rule for a parameter
-type Rule struct {
-	Key      string
-	Type     int
-	Required bool
-	Regex    string
-	Message  string
-	Min      interface{}
-	Max      interface{}
-
-	// callbacks
-	Customs  []CustomCallback
-	Prepares []PrepareCallback
-	Alters   []AlterCallback
+type Result struct {
+	ok  bool
+	err error
 }
 
 type ruleBuilder builder.Builder
@@ -110,8 +100,6 @@ func (rb ruleBuilder) updateTypeAccordingTo(val interface{}) ruleBuilder {
 	log.Println("Dynamically updating type from", t.Kind().String())
 
 	switch t.Kind() {
-
-	// primitives
 	case reflect.Bool:
 		log.Println("Updating type to number")
 		rb = rb.Bool()
@@ -236,88 +224,7 @@ func (rb ruleBuilder) Email() ruleBuilder {
 }
 
 var RuleBuilder = builder.Register(ruleBuilder{}, Rule{}).(ruleBuilder)
-
-func (rule *Rule) checkAgainst(given map[string]interface{}) (interface{}, error) {
-	fmt.Printf("\nChecking \"%v\"", rule.Key)
-	fmt.Printf("\n--------")
-
-	fmt.Printf("\nRequired...")
-	val, ok := given[rule.Key]
-	if !ok {
-		if rule.Required {
-			// Throw error indicating value is not in given input
-			fmt.Printf("FAIL")
-			return false, errors.New("Required key not found")
-		} else {
-			fmt.Printf("SKIP")
-			return true, nil
-		}
-	} else {
-		fmt.Printf("OK")
-	}
-
-	fmt.Printf("\nType... %v", reflect.TypeOf(val))
-
-	fmt.Printf("\nCustom...")
-	if len(rule.Customs) > 0 {
-		for _, cb := range rule.Customs {
-			if ok := cb(val); !ok {
-				fmt.Printf("FAIL")
-				return false, errors.New("Custom failed")
-			} else {
-				fmt.Printf("OK")
-			}
-		}
-	} else {
-		fmt.Printf("SKIP")
-	}
-
-	fmt.Printf("\nAlters...")
-	if len(rule.Alters) > 0 {
-		for _, cb := range rule.Alters {
-			val = cb(val)
-		}
-	} else {
-		fmt.Printf("SKIP")
-	}
-
-	fmt.Printf("\nRegex...")
-	if len(rule.Regex) > 0 {
-		re, err := regexp.Compile(rule.Regex)
-		if err != nil {
-			fmt.Printf("Invalid regex! %v", err)
-			return false, errors.New("Invalid regex")
-		}
-		if re.MatchString(val.(string)) {
-			fmt.Printf("OK")
-		} else {
-			fmt.Printf("FAIL")
-			return false, nil
-		}
-	} else {
-		fmt.Printf("SKIP")
-	}
-
-	fmt.Printf("\nType...")
-	if rule.Type > 0 {
-		ok := true
-		if rule.Type == String {
-			_, ok = val.(string)
-		}
-		if ok {
-			fmt.Printf("OK")
-		} else {
-			fmt.Printf("FAIL")
-		}
-
-	} else {
-		fmt.Printf("SKIP")
-	}
-
-	fmt.Printf("\n--------\n")
-
-	return val, nil
-}
+var RB = RuleBuilder
 
 func RuleBookFor(obj interface{}, required bool) RuleBook {
 	fmt.Println("\nGot obj ", obj)
