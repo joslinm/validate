@@ -122,9 +122,7 @@ params, err := validate.Data(map[string]interface{}{
 
 Pre/Post Processing
 --------
-Before or after validation rules (which includes custom callbacks), you might want to transform the data. You don't have
-to alter the data. You can log it, but you really shouldn't. The terminology `Prepare()` & `Alter()` describe their intended usage.
-Logging can come before & after the validation step. 
+Before or after validation rules (which includes custom callbacks), you might want to transform the data. 
 
 * pre processing  -> `Prepare()`
 * post processing -> `Alter()`
