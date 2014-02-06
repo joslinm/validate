@@ -277,6 +277,7 @@ func Map(given map[string]interface{}, expected RuleBook) (map[string]interface{
 		}
 		retVals[k] = val
 	}
+	fmt.Printf("\nretValues = %v", retVals)
 
 	return retVals, nil
 }

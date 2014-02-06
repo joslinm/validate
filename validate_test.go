@@ -67,7 +67,7 @@ func Test(t *testing.T) {
 		g.It("Should process its output given an input", func() {
 			rule := validate.RB.Min(5).Max(10).Key("Hi").Build()
 			input := map[string]interface{}{"Hi": 6}
-			rule.Input = &input
+			rule.Input = input
 			rule.Process()
 
 			g.Assert(rule.Results != nil).IsTrue()

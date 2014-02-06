@@ -24,12 +24,28 @@ type Rule struct {
 	Alters   []AlterCallback
 
 	// input / output
-	Input   *map[string]interface{}
+	Input   map[string]interface{}
 	Results []Result
 }
 
+/* Public */
+
+// ProcessWith(...) set the rule's input and processes it
+func (rule *Rule) ProcessWith(val map[string]interface{}) []Result {
+	rule.Input = val
+	return rule.Process()
+}
+
+// Process() examines its input & output and creates
+// an array of `Result` structs. This array gets bubbled
+// up to `validate.Data(input).With(rules), which means
+// it DOES NOT PANIC. The library as a whole follows a convention
+// to not panic unless a programmer error is recognized (e.g.,
+// clearly setting the wrong type or setting disparate min/max
+// values). This is meant to give the programmer the means
+// to bundle up the errors himself.
 func (rule *Rule) Process() []Result {
-	input := *rule.Input
+	input := rule.Input
 	if input == nil {
 		panic("Tried to process a rule without an input")
 	}
