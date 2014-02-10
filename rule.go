@@ -1,11 +1,26 @@
 package validate
 
 import (
-	"errors"
-	"log"
-	"reflect"
-	"regexp"
+	"fmt"
+	"strconv"
+	"time"
 )
+
+// Types
+const (
+	Unknown = iota
+	Int
+	Float
+	Number
+	Bool
+	String
+	Time
+)
+
+// Type of callbacks to be used in a Rule
+type AlterCallback func(value interface{}) interface{}
+type PrepareCallback func(value interface{}) interface{}
+type CustomCallback func(value interface{}) bool
 
 // Rule encompasses a single validation rule for a parameter
 type Rule struct {
@@ -15,124 +30,136 @@ type Rule struct {
 	Required bool
 	Regex    string
 	Message  string
-	Min      interface{}
-	Max      interface{}
+	Min      float64
+	Max      float64
+	Before   time.Time
+	After    time.Time
 
 	// callbacks
 	Customs  []CustomCallback
 	Prepares []PrepareCallback
 	Alters   []AlterCallback
 
-	// input / output
-	Input   map[string]interface{}
-	Results []Result
+	// using these since max / min get initialized to 0
+	DidSetMin bool
+	DidSetMax bool
 }
 
+/* ****** */
 /* Public */
+/* ****** */
 
-// ProcessWith(...) set the rule's input and processes it
-func (rule *Rule) ProcessWith(val map[string]interface{}) []Result {
-	rule.Input = val
-	return rule.Process()
-}
+func (rule *Rule) Process(input interface{}) (bool, []error) {
+	// ret values
+	var ok bool
+	var errors []error
 
-// Process() examines its input & output and creates
-// an array of `Result` structs. This array gets bubbled
-// up to `validate.Data(input).With(rules), which means
-// it DOES NOT PANIC. The library as a whole follows a convention
-// to not panic unless a programmer error is recognized (e.g.,
-// clearly setting the wrong type or setting disparate min/max
-// values). This is meant to give the programmer the means
-// to bundle up the errors himself.
-func (rule *Rule) Process() []Result {
-	input := rule.Input
-	if input == nil {
-		panic("Tried to process a rule without an input")
+	// route return values by type
+	switch rule.Type {
+	case Int:
+		fallthrough
+	case Float:
+		fallthrough
+	case Number:
+		ok, errors = rule.evalNumber(input)
+		break
 	}
 
-	rule.Results = []Result{Result{}}
-	return rule.Results
-
+	return ok, errors
 }
 
-func (rule *Rule) checkAgainst(given map[string]interface{}) (interface{}, error) {
-	log.Printf("\nChecking \"%v\"", rule.Key)
-	log.Printf("\n--------")
+/* * * * * * * * * * * * *
+  Type Eval Functions
+* * * * * * * * * * * * */
+func (rule *Rule) evalNumber(val interface{}) (bool, []error) {
+	var ok bool
+	var errors []error
 
-	log.Printf("\nRequired...")
-	val, ok := given[rule.Key]
-	if !ok {
-		if rule.Required {
-			// Throw error indicating value is not in given input
-			log.Printf("FAIL")
-			return false, errors.New("Required key not found")
+	switch val.(type) {
+	case string:
+		fmt.Println("Got String input.. converting..")
+		float, err := strconv.ParseFloat(val.(string), 64)
+		if err == nil {
+			fmt.Println("Converted to float")
+			ok, errors = rule.evalFloat(float)
 		} else {
-			log.Printf("SKIP")
-			return true, nil
-		}
-	} else {
-		log.Printf("OK")
-	}
-
-	log.Printf("\nType... %v", reflect.TypeOf(val))
-
-	log.Printf("\nCustom...")
-	if len(rule.Customs) > 0 {
-		for _, cb := range rule.Customs {
-			if ok := cb(val); !ok {
-				log.Printf("FAIL")
-				return false, errors.New("Custom failed")
-			} else {
-				log.Printf("OK")
+			integer, err := strconv.ParseInt(val.(string), 2, 64)
+			if err != nil {
+				fmt.Println("Converted to int")
+				ok, errors = rule.evalInt(int(integer))
 			}
 		}
-	} else {
-		log.Printf("SKIP")
+		break
+	case int32:
+		ok, errors = rule.evalInt(int(val.(int32)))
+	case int64:
+		ok, errors = rule.evalInt(int(val.(int64)))
+	case int:
+		ok, errors = rule.evalInt(val.(int))
+	case float32:
+		ok, errors = rule.evalFloat(val.(float64))
+	case float64:
+		ok, errors = rule.evalFloat(val.(float64))
 	}
 
-	log.Printf("\nAlters...")
-	if len(rule.Alters) > 0 {
-		for _, cb := range rule.Alters {
-			val = cb(val)
-		}
-	} else {
-		log.Printf("SKIP")
-	}
-
-	log.Printf("\nRegex...")
-	if len(rule.Regex) > 0 {
-		re, err := regexp.Compile(rule.Regex)
-		if err != nil {
-			log.Printf("Invalid regex! %v", err)
-			return false, errors.New("Invalid regex")
-		}
-		if re.MatchString(val.(string)) {
-			log.Printf("OK")
-		} else {
-			log.Printf("FAIL")
-			return false, nil
-		}
-	} else {
-		log.Printf("SKIP")
-	}
-
-	log.Printf("\nType...")
-	if rule.Type > 0 {
-		ok := true
-		if rule.Type == String {
-			_, ok = val.(string)
-		}
-		if ok {
-			log.Printf("OK")
-		} else {
-			log.Printf("FAIL")
-		}
-
-	} else {
-		log.Printf("SKIP")
-	}
-
-	log.Printf("\n--------\n")
-
-	return val, nil
+	return ok, errors
 }
+
+func (rule *Rule) evalInt(val int) (bool, []error) {
+	return rule.evalFloat(float64(val))
+}
+
+func (rule *Rule) evalFloat(val float64) (bool, []error) {
+	allOk := true
+	var errors []error
+
+	if rule.DidSetMin {
+		ok, err := rule.evalNumericMin(val)
+		if !ok {
+			fmt.Printf("Min failed")
+			errors = append(errors, err)
+			allOk = false
+		}
+	}
+	if rule.DidSetMax {
+		if ok, err := rule.evalNumericMax(val); !ok {
+			fmt.Printf("Max failed")
+			errors = append(errors, err)
+			allOk = false
+		}
+	}
+
+	return allOk, errors
+}
+
+/* * * * * * * * * * * * *
+  Rule Eval Functions
+* * * * * * * * * * * * */
+func (rule *Rule) evalNumericMin(val float64) (bool, error) {
+	ok := true
+	var err error
+
+	fmt.Printf("Comparing %v > %v", val, rule.Min)
+	if val < rule.Min {
+		err = fmt.Errorf("Input(%v) is LESS THAN(<) Minimum(%v)", val, rule.Min)
+		ok = false
+	}
+
+	return ok, err
+}
+
+func (rule *Rule) evalNumericMax(val float64) (bool, error) {
+	ok := true
+	var err error
+
+	if val > rule.Max {
+		err = fmt.Errorf("Input(%v) is GREATER THAN(>) Minimum(%v)", val, rule.Max)
+		ok = false
+	}
+
+	return ok, err
+}
+
+/* * * * * * * * * * * * *
+  Helper Functions
+* * * * * * * * * * * * */
