@@ -65,6 +65,7 @@ func (rule *Rule) Process(input interface{}) (bool, []error) {
 		break
 	}
 
+	log.Debug("process(...) -> %v, %v", ok, errors)
 	return ok, errors
 }
 
@@ -77,17 +78,23 @@ func (rule *Rule) evalNumber(val interface{}) (bool, []error) {
 
 	switch val.(type) {
 	case string:
-		fmt.Println("Got String input.. converting..")
-		float, err := strconv.ParseFloat(val.(string), 64)
-		if err == nil {
-			fmt.Println("Converted to float")
-			ok, errors = rule.evalFloat(float)
+		num, t, ok := convertStringToNumber(val.(string))
+		if !ok {
+			log.Error("Could not convert string '%v' to number!", val)
+			err := ConversionError(val, "Number")
+			errors = []error{err}
+			return false, errors
 		} else {
-			integer, err := strconv.ParseInt(val.(string), 2, 64)
-			if err != nil {
-				fmt.Println("Converted to int")
-				ok, errors = rule.evalInt(int(integer))
-			}
+			log.Debug("Converted %v to %v", val, num)
+			return rule.evalNumber(num)
+		}
+		switch t {
+		case Int:
+			ok, errors = rule.evalInt(num.(int))
+			break
+		case Float:
+			ok, errors = rule.evalFloat(num.(float64))
+			break
 		}
 		break
 	case int32:
@@ -114,46 +121,46 @@ func (rule *Rule) evalFloat(val float64) (bool, []error) {
 	var errors []error
 
 	if rule.DidSetMin {
-		ok, err := rule.evalNumericMin(val)
+		ok, err := rule.evalMin(val)
 		if !ok {
-			fmt.Printf("Min failed")
 			errors = append(errors, err)
 			allOk = false
 		}
 	}
 	if rule.DidSetMax {
-		if ok, err := rule.evalNumericMax(val); !ok {
+		if ok, err := rule.evalMax(val); !ok {
 			fmt.Printf("Max failed")
 			errors = append(errors, err)
 			allOk = false
 		}
 	}
-
+	log.Debug("evalFloat(...) -> %v, %v", allOk, errors)
 	return allOk, errors
 }
 
 /* * * * * * * * * * * * *
   Rule Eval Functions
 * * * * * * * * * * * * */
-func (rule *Rule) evalNumericMin(val float64) (bool, error) {
+func (rule *Rule) evalMin(val float64) (bool, error) {
 	ok := true
 	var err error
 
-	fmt.Printf("Comparing %v > %v", val, rule.Min)
+	log.Debug("Validating %v > %v", val, rule.Min)
 	if val < rule.Min {
-		err = fmt.Errorf("Input(%v) is LESS THAN(<) Minimum(%v)", val, rule.Min)
+		err = fmt.Errorf("Input(%v) < Minimum(%v)", val, rule.Min)
 		ok = false
 	}
 
+	log.Debug("OK!")
 	return ok, err
 }
 
-func (rule *Rule) evalNumericMax(val float64) (bool, error) {
+func (rule *Rule) evalMax(val float64) (bool, error) {
 	ok := true
 	var err error
 
 	if val > rule.Max {
-		err = fmt.Errorf("Input(%v) is GREATER THAN(>) Minimum(%v)", val, rule.Max)
+		err = fmt.Errorf("Input(%v) > Maximum(%v)", val, rule.Min)
 		ok = false
 	}
 
@@ -163,3 +170,28 @@ func (rule *Rule) evalNumericMax(val float64) (bool, error) {
 /* * * * * * * * * * * * *
   Helper Functions
 * * * * * * * * * * * * */
+
+func convertStringToNumber(val string) (interface{}, int, bool) {
+	log.Debug("convertStringToNumber <- %v", val)
+
+	var num interface{}
+	var size = 0
+	var ok = false
+
+	// first try to convert to float
+	for size := range []int{64, 32} { // try each size
+		float, err := strconv.ParseFloat(val, size)
+		if err == nil { // success
+			num, size, ok = float, Float, true
+		}
+
+		// next try int
+		integer, err := strconv.ParseInt(val, 2, size)
+		if err == nil {
+			num, size, ok = integer, Int, true
+		}
+	}
+
+	log.Debug("convertStringToNumber -> %v, %v, %v", num, size, ok)
+	return num, size, ok
+}

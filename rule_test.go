@@ -8,6 +8,7 @@ import (
 )
 
 func TestRules(t *testing.T) {
+
 	fmt.Println("-- Testing Rules --")
 
 	g := Goblin(t)
@@ -24,21 +25,28 @@ func TestRules(t *testing.T) {
 
 	})
 
-	g.Describe("Input", func() {
-
-		g.It("string be converted to number and evaluated", func() {
-			rule := validate.RB.Min(4).Build()
-			ok, _ := rule.Process("3")
-			g.Assert(ok).IsFalse()
-		})
-
-		g.It("should error if min is greater", func() {
+	g.Describe("Number validation", func() {
+		g.It("should error if input < min", func() {
 			rule := validate.RB.Min(5).Build()
 			ok, errors := rule.Process(4)
 			g.Assert(ok).IsFalse()
 			g.Assert(len(errors) > 0).IsTrue()
-			fmt.Printf("Errors: %v", errors)
+		})
+		g.It("should error if input > max", func() {
+			rule := validate.RB.Max(5).Build()
+			ok, errors := rule.Process(6)
+			g.Assert(ok).IsFalse()
+			g.Assert(len(errors) > 0).IsTrue()
+		})
+		g.It("Should accept string input and perform validation", func() {
+			rule := validate.RB.Min(4).Build()
+			ok, _ := rule.Process("5")
+			g.Assert(ok).IsTrue()
+		})
+		g.It("Should error if string input cannot be converted", func() {
+			rule := validate.RB.Min(4).Build()
+			ok, _ := rule.Process("z")
+			g.Assert(ok).IsFalse()
 		})
 	})
-
 }

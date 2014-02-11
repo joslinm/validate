@@ -1,9 +1,7 @@
 package validate
 
 import (
-	"fmt"
 	"github.com/lann/builder"
-	"log"
 	"reflect"
 	"time"
 )
@@ -11,19 +9,17 @@ import (
 type ruleBuilder builder.Builder
 
 func (rb ruleBuilder) Build() Rule {
-	s := builder.GetStruct(rb).(Rule)
-	fmt.Println("\nGot struct: ", s)
 	return builder.GetStruct(rb).(Rule)
 }
 
 func (rb ruleBuilder) updateTypeAccordingTo(val interface{}) ruleBuilder {
+	log.Debug("updateTypeAccordingTo(...) <- %v ", val)
 	// get type
 	t := reflect.TypeOf(val)
-	log.Println("Dynamically updating type from", t.Kind().String())
 
 	switch t.Kind() {
 	case reflect.Bool:
-		log.Println("Updating type to number")
+		log.Debug("Type to boolean")
 		rb = rb.Bool()
 		break
 	case reflect.Int:
@@ -55,7 +51,7 @@ func (rb ruleBuilder) updateTypeAccordingTo(val interface{}) ruleBuilder {
 	case reflect.Complex64:
 		fallthrough
 	case reflect.Complex128:
-		log.Println("Updating type to number")
+		log.Debug("Type to number")
 		rb = rb.Number()
 		break
 	case reflect.Array:
@@ -66,9 +62,11 @@ func (rb ruleBuilder) updateTypeAccordingTo(val interface{}) ruleBuilder {
 	case reflect.Ptr:
 	case reflect.Slice:
 	case reflect.String:
+		rb = rb.String()
+		break
 	case reflect.Struct:
 		if _, ok := val.(time.Time); ok {
-			log.Println("Updating type to time")
+			log.Debug("Type to time")
 			rb = rb.Time()
 		}
 		break
