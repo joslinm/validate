@@ -113,10 +113,12 @@ func (rb ruleBuilder) Message(msg string) ruleBuilder {
 
 // regex
 func (rb ruleBuilder) Regex(regex string) ruleBuilder {
-	return builder.Set(rb, "Regex", regex).(ruleBuilder)
+	rb = builder.Set(rb, "Regex", regex).(ruleBuilder)
+	rb = rb.updateTypeAccordingTo(regex)
+	return rb
 }
 
-// min, max, between
+// min, max, equals, between
 func (rb ruleBuilder) Min(min float64) ruleBuilder {
 	rb = builder.Set(rb, "Min", min).(ruleBuilder)
 	rb = builder.Set(rb, "DidSetMin", true).(ruleBuilder)
@@ -128,6 +130,12 @@ func (rb ruleBuilder) Max(max float64) ruleBuilder {
 	rb = builder.Set(rb, "Max", max).(ruleBuilder)
 	rb = builder.Set(rb, "DidSetMax", true).(ruleBuilder)
 	rb = rb.updateTypeAccordingTo(max)
+	return rb
+}
+
+func (rb ruleBuilder) In(val []string) ruleBuilder {
+	rb = builder.Set(rb, "In", val).(ruleBuilder)
+	rb = rb.updateTypeAccordingTo("a string")
 	return rb
 }
 

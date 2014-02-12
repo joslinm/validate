@@ -2,6 +2,7 @@ package validate
 
 import (
 	"fmt"
+	"regexp"
 	"strconv"
 	"time"
 )
@@ -34,6 +35,7 @@ type Rule struct {
 	Max      float64
 	Before   time.Time
 	After    time.Time
+	In       []string
 
 	// callbacks
 	Customs  []CustomCallback
@@ -45,10 +47,7 @@ type Rule struct {
 	DidSetMax bool
 }
 
-/* ****** */
-/* Public */
-/* ****** */
-
+// Validates an input
 func (rule *Rule) Process(input interface{}) (bool, []error) {
 	// ret values
 	var ok bool
@@ -63,6 +62,9 @@ func (rule *Rule) Process(input interface{}) (bool, []error) {
 	case Number:
 		ok, errors = rule.evalNumber(input)
 		break
+	case String:
+		ok, errors = rule.evalString(input.(string))
+		break
 	}
 
 	log.Debug("process(...) -> %v, %v", ok, errors)
@@ -72,6 +74,35 @@ func (rule *Rule) Process(input interface{}) (bool, []error) {
 /* * * * * * * * * * * * *
   Type Eval Functions
 * * * * * * * * * * * * */
+func (rule *Rule) evalString(val string) (bool, []error) {
+	allOk := true
+	var errors []error
+
+	log.Debug("Length of regex %v (%v)", len(rule.Regex), rule.Regex)
+	if len(rule.Regex) > 0 {
+		ok, err := rule.evalRegex(val)
+		if !ok {
+			log.Debug("Regex failed")
+			errors = append(errors, err)
+			allOk = false
+		} else {
+			log.Debug("Regex succeeded")
+		}
+	}
+	if len(rule.In) > 0 {
+		ok, err := rule.evalIn(val)
+		if !ok {
+			log.Debug("In failed")
+			errors = append(errors, err)
+			allOk = false
+		} else {
+			log.Debug("In succeeded")
+		}
+	}
+
+	return allOk, errors
+}
+
 func (rule *Rule) evalNumber(val interface{}) (bool, []error) {
 	var ok bool
 	var errors []error
@@ -141,17 +172,53 @@ func (rule *Rule) evalFloat(val float64) (bool, []error) {
 /* * * * * * * * * * * * *
   Rule Eval Functions
 * * * * * * * * * * * * */
+func (rule *Rule) evalIn(val string) (bool, error) {
+	ok := false
+	err := fmt.Errorf("[%v] not in %v", val, rule.In)
+
+	log.Debug("Looking up [%v] in %v", val, rule.In)
+	for _, inVal := range rule.In {
+		if inVal == val {
+			ok = true
+			err = nil
+			break
+		}
+	}
+
+	return ok, err
+
+}
+
+func (rule *Rule) evalRegex(val string) (bool, error) {
+	ok := true
+	var err error
+
+	log.Debug("Validating %v =~ %v", val, rule.Regex)
+	expr, err := regexp.Compile(rule.Regex)
+	if err == nil {
+		// check regex
+		if k := expr.MatchString(val); !k {
+			log.Debug("Failed regex")
+			err = fmt.Errorf("[%v] did not match regex [%v]", val, rule.Regex)
+			ok = false
+		} else {
+			log.Debug("Passed regex")
+		}
+	}
+
+	return ok, err
+}
+
 func (rule *Rule) evalMin(val float64) (bool, error) {
 	ok := true
 	var err error
 
-	log.Debug("Validating %v > %v", val, rule.Min)
+	log.Debug("Validating %v > %v...", val, rule.Min)
 	if val < rule.Min {
 		err = fmt.Errorf("Input(%v) < Minimum(%v)", val, rule.Min)
 		ok = false
 	}
 
-	log.Debug("OK!")
 	return ok, err
 }
 
