@@ -137,4 +137,4 @@ lc_then_uc := validate.RuleBuilder.Required().Prepare(func(val interface{}) inte
   return val
 })
 ```
-
+[![Bitdeli Badge](https://d2weczhvl823v0.cloudfront.net/joslinm/validate/trend.png)](https://bitdeli.com/free "Bitdeli Badge")
