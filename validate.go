@@ -8,8 +8,7 @@ import (
 
 type RuleBook map[string]ruleBuilder
 
-var log = logging.MustGetLogger("validate")
-var Log = log
+var Log = logging.MustGetLogger("validate")
 
 type ValidationData struct {
 	data map[string]interface{}
@@ -37,16 +36,20 @@ func sameType(vals ...interface{}) bool {
 func Map(given map[string]interface{}, expected RuleBook) (map[string]interface{}, map[string][]error) {
 	params := make(map[string]interface{})
 	paramErrors := make(map[string][]error)
-	log.Debug("Input: %v", given)
+	Log.Debug("Input: %v", given)
 
 	for k, v := range expected {
 		rule := v.Build()
 		if ok, errors := rule.Process(given[k]); !ok {
-			log.Debug(": %v", given)
+			Log.Debug(": %v", given)
 			paramErrors[k] = errors
 		}
 		params[k] = v
 	}
 
 	return params, paramErrors
+}
+
+func SetLoggingLevel(level logging.Level) {
+	logging.SetLevel(level, "validate")
 }

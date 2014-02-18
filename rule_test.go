@@ -8,6 +8,7 @@ import (
 )
 
 func TestRules(t *testing.T) {
+	validate.SetLoggingLevel(0) // critical
 
 	fmt.Println("-- Testing Rules --")
 

@@ -13,13 +13,13 @@ func (rb ruleBuilder) Build() Rule {
 }
 
 func (rb ruleBuilder) updateTypeAccordingTo(val interface{}) ruleBuilder {
-	log.Debug("updateTypeAccordingTo(...) <- %v ", val)
+	Log.Debug("updateTypeAccordingTo(...) <- %v ", val)
 	// get type
 	t := reflect.TypeOf(val)
 
 	switch t.Kind() {
 	case reflect.Bool:
-		log.Debug("Type to boolean")
+		Log.Debug("Type to boolean")
 		rb = rb.Bool()
 		break
 	case reflect.Int:
@@ -51,16 +51,16 @@ func (rb ruleBuilder) updateTypeAccordingTo(val interface{}) ruleBuilder {
 	case reflect.Complex64:
 		fallthrough
 	case reflect.Complex128:
-		log.Debug("Type to number")
+		Log.Debug("Type to number")
 		rb = rb.Number()
 		break
 	case reflect.String:
-		log.Debug("Type to string")
+		Log.Debug("Type to string")
 		rb = rb.String()
 		break
 	case reflect.Struct:
 		if _, ok := val.(time.Time); ok {
-			log.Debug("Type to time")
+			Log.Debug("Type to time")
 			rb = rb.Time()
 		}
 		break

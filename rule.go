@@ -67,7 +67,7 @@ func (rule *Rule) Process(input interface{}) (bool, []error) {
 		break
 	}
 
-	log.Debug("process(...) -> %v, %v", ok, errors)
+	Log.Debug("process(...) -> %v, %v", ok, errors)
 	return ok, errors
 }
 
@@ -78,25 +78,25 @@ func (rule *Rule) evalString(val string) (bool, []error) {
 	allOk := true
 	var errors []error
 
-	log.Debug("Length of regex %v (%v)", len(rule.Regex), rule.Regex)
+	Log.Debug("Length of regex %v (%v)", len(rule.Regex), rule.Regex)
 	if len(rule.Regex) > 0 {
 		ok, err := rule.evalRegex(val)
 		if !ok {
-			log.Debug("Regex failed")
+			Log.Debug("Regex failed")
 			errors = append(errors, err)
 			allOk = false
 		} else {
-			log.Debug("Regex succeeded")
+			Log.Debug("Regex succeeded")
 		}
 	}
 	if len(rule.In) > 0 {
 		ok, err := rule.evalIn(val)
 		if !ok {
-			log.Debug("In failed")
+			Log.Debug("In failed")
 			errors = append(errors, err)
 			allOk = false
 		} else {
-			log.Debug("In succeeded")
+			Log.Debug("In succeeded")
 		}
 	}
 
@@ -111,12 +111,12 @@ func (rule *Rule) evalNumber(val interface{}) (bool, []error) {
 	case string:
 		num, t, ok := convertStringToNumber(val.(string))
 		if !ok {
-			log.Error("Could not convert string '%v' to number!", val)
+			Log.Error("Could not convert string '%v' to number!", val)
 			err := ConversionError(val, "Number")
 			errors = []error{err}
 			return false, errors
 		} else {
-			log.Debug("Converted %v to %v", val, num)
+			Log.Debug("Converted %v to %v", val, num)
 			return rule.evalNumber(num)
 		}
 		switch t {
@@ -160,12 +160,11 @@ func (rule *Rule) evalFloat(val float64) (bool, []error) {
 	}
 	if rule.DidSetMax {
 		if ok, err := rule.evalMax(val); !ok {
-			fmt.Printf("Max failed")
 			errors = append(errors, err)
 			allOk = false
 		}
 	}
-	log.Debug("evalFloat(...) -> %v, %v", allOk, errors)
+	Log.Debug("evalFloat(...) -> %v, %v", allOk, errors)
 	return allOk, errors
 }
 
@@ -176,7 +175,7 @@ func (rule *Rule) evalIn(val string) (bool, error) {
 	ok := false
 	err := fmt.Errorf("[%v] not in %v", val, rule.In)
 
-	log.Debug("Looking up [%v] in %v", val, rule.In)
+	Log.Debug("Looking up [%v] in %v", val, rule.In)
 	for _, inVal := range rule.In {
 		if inVal == val {
 			ok = true
@@ -193,16 +192,16 @@ func (rule *Rule) evalRegex(val string) (bool, error) {
 	ok := true
 	var err error
 
-	log.Debug("Validating %v =~ %v", val, rule.Regex)
+	Log.Debug("Validating %v =~ %v", val, rule.Regex)
 	expr, err := regexp.Compile(rule.Regex)
 	if err == nil {
 		// check regex
 		if k := expr.MatchString(val); !k {
-			log.Debug("Failed regex")
+			Log.Debug("Failed regex")
 			err = fmt.Errorf("[%v] did not match regex [%v]", val, rule.Regex)
 			ok = false
 		} else {
-			log.Debug("Passed regex")
+			Log.Debug("Passed regex")
 		}
 	}
 
@@ -213,7 +212,7 @@ func (rule *Rule) evalMin(val float64) (bool, error) {
 	ok := true
 	var err error
 
-	log.Debug("Validating %v > %v...", val, rule.Min)
+	Log.Debug("Validating %v > %v...", val, rule.Min)
 	if val < rule.Min {
 		err = fmt.Errorf("Input(%v) < Minimum(%v)", val, rule.Min)
 		ok = false
@@ -239,7 +238,7 @@ func (rule *Rule) evalMax(val float64) (bool, error) {
 * * * * * * * * * * * * */
 
 func convertStringToNumber(val string) (interface{}, int, bool) {
-	log.Debug("convertStringToNumber <- %v", val)
+	Log.Debug("convertStringToNumber <- %v", val)
 
 	var num interface{}
 	var size = 0
@@ -259,6 +258,6 @@ func convertStringToNumber(val string) (interface{}, int, bool) {
 		}
 	}
 
-	log.Debug("convertStringToNumber -> %v, %v, %v", num, size, ok)
+	Log.Debug("convertStringToNumber -> %v, %v, %v", num, size, ok)
 	return num, size, ok
 }

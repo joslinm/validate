@@ -8,6 +8,8 @@ import (
 )
 
 func TestValidate(t *testing.T) {
+	validate.SetLoggingLevel(0) // critical
+
 	fmt.Println("-- Testing Validation --")
 
 	g := Goblin(t)
