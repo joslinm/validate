@@ -1,16 +1,13 @@
 package validate_test
 
 import (
-	"fmt"
 	. "github.com/franela/goblin"
 	"github.com/joslinm/validate"
 	"testing"
 )
 
 func TestRules(t *testing.T) {
-	validate.SetLoggingLevel(0) // critical
-
-	fmt.Println("-- Testing Rules --")
+	//validate.SetLoggingLevel(0) // critical
 
 	g := Goblin(t)
 	g.Describe("Construction", func() {
@@ -36,6 +33,19 @@ func TestRules(t *testing.T) {
 	g.Describe("Type", func() {
 		/* Number */
 		g.Describe("Number", func() {
+			// Positive Tests
+			g.It("Should accept string input and perform validation", func() {
+				rule := validate.RB.Min(4).Build()
+				ok, _ := rule.Process("5")
+				g.Assert(ok).IsTrue()
+			})
+			g.It("Should error if string input cannot be converted", func() {
+				rule := validate.RB.Min(4).Build()
+				ok, _ := rule.Process("z")
+				g.Assert(ok).IsFalse()
+			})
+
+			// Negative Tests
 			g.It("should error if input < min", func() {
 				rule := validate.RB.Min(5).Build()
 				ok, errors := rule.Process(4)
@@ -47,16 +57,6 @@ func TestRules(t *testing.T) {
 				ok, errors := rule.Process(6)
 				g.Assert(ok).IsFalse()
 				g.Assert(len(errors) > 0).IsTrue()
-			})
-			g.It("Should accept string input and perform validation", func() {
-				rule := validate.RB.Min(4).Build()
-				ok, _ := rule.Process("5")
-				g.Assert(ok).IsTrue()
-			})
-			g.It("Should error if string input cannot be converted", func() {
-				rule := validate.RB.Min(4).Build()
-				ok, _ := rule.Process("z")
-				g.Assert(ok).IsFalse()
 			})
 		})
 
@@ -84,6 +84,31 @@ func TestRules(t *testing.T) {
 				ok, errors := rule.Process("hi")
 				g.Assert(ok).IsFalse()
 				g.Assert(len(errors) > 0).IsTrue()
+			})
+		})
+
+		g.Describe("Boolean", func() {
+			g.It("should succeed regardless of value given", func() {
+				rule := validate.RB.Bool().Build()
+				ok, errors := rule.Process(true)
+				g.Assert(ok).IsTrue()
+				g.Assert(len(errors) == 0).IsTrue()
+				ok, errors = rule.Process(false)
+				g.Assert(ok).IsTrue()
+				g.Assert(len(errors) == 0).IsTrue()
+			})
+
+			g.It("Should error if value is not a boolean", func() {
+				rule := validate.RB.Bool().Build()
+				ok, errors := rule.Process("hi")
+				expectError(g, ok, errors)
+			})
+
+			g.It("Should not error if value is string capable of converting to boolean", func() {
+				rule := validate.RB.Bool().Build()
+				ok, errors := rule.Process("1")
+				g.Assert(ok).IsTrue()
+				g.Assert(len(errors) == 0).IsTrue()
 			})
 		})
 	})

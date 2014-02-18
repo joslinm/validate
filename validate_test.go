@@ -1,16 +1,18 @@
 package validate_test
 
 import (
-	"fmt"
 	. "github.com/franela/goblin"
 	"github.com/joslinm/validate"
 	"testing"
 )
 
+func expectError(g *G, ok bool, errors []error) {
+	g.Assert(ok).IsFalse()
+	g.Assert(len(errors) > 0).IsTrue()
+}
+
 func TestValidate(t *testing.T) {
 	validate.SetLoggingLevel(0) // critical
-
-	fmt.Println("-- Testing Validation --")
 
 	g := Goblin(t)
 	g.Describe("Validation [Negative Tests]", func() {

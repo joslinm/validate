@@ -2,6 +2,7 @@ package validate
 
 import (
 	"fmt"
+	"reflect"
 	"regexp"
 	"strconv"
 	"time"
@@ -17,6 +18,8 @@ const (
 	String
 	Time
 )
+
+//
 
 // Type of callbacks to be used in a Rule
 type AlterCallback func(value interface{}) interface{}
@@ -47,11 +50,107 @@ type Rule struct {
 	DidSetMax bool
 }
 
+func (rule *Rule) typeOkFor(input interface{}) bool {
+	var ok bool
+
+	switch rule.Type {
+	case Int:
+		_, ok = input.(int64)
+		if !ok {
+			_, ok = input.(int32)
+		}
+		break
+	case Float:
+		_, ok = input.(float64)
+		if !ok {
+			_, ok = input.(float32)
+		}
+		break
+	case Number:
+		_, ok = input.(float64)
+		if !ok {
+			_, ok = input.(float32)
+		}
+		if !ok {
+			_, ok = input.(int64)
+		}
+		if !ok {
+			_, ok = input.(int32)
+		}
+		break
+	case String:
+		_, ok = input.(string)
+		break
+	case Bool:
+		_, ok = input.(bool)
+		break
+	}
+
+	return ok
+}
+
+func (rule *Rule) convertString(input string) (interface{}, bool) {
+	Log.Debug("convertString <- %v", input)
+
+	var converted interface{}
+	var ok bool
+
+	switch rule.Type {
+	case Bool:
+		val, err := strconv.ParseBool(input)
+		ok = err == nil
+		converted = val
+		Log.Debug("Tried to convert bool '%v' to '%v': succeeded? %v", input, converted, ok)
+		break
+	case Int:
+		fallthrough
+	case Float:
+		fallthrough
+	case Number:
+		var num interface{}
+		var t int
+		num, t, ok = convertStringToNumber(input)
+		if !ok {
+			Log.Error("Could not convert string '%v' to number!", input)
+		} else {
+			switch t {
+			case Int:
+				converted = num.(int)
+				break
+			case Float:
+				converted = num.(float64)
+				break
+			}
+			Log.Debug("Converted %v to %v", input, converted)
+		}
+		break
+	}
+
+	Log.Debug("convertString -> %v, %v", converted, ok)
+	return converted, ok
+}
+
 // Validates an input
 func (rule *Rule) Process(input interface{}) (bool, []error) {
 	// ret values
 	var ok bool
 	var errors []error
+
+	// type check
+	if !rule.typeOkFor(input) {
+		// try to convert a string first
+		_, ok := input.(string)
+		if ok {
+			input, ok = rule.convertString(input.(string))
+		}
+		if !ok {
+			msg := fmt.Sprintf("Bad input type. Expecting type %v", rule.Type)
+			Log.Warning(msg)
+			errors = append(errors, fmt.Errorf(msg))
+			return false, errors
+		}
+	}
+	Log.Info("Input '%v' type is: %v", reflect.ValueOf(input), reflect.TypeOf(input))
 
 	// route return values by type
 	switch rule.Type {
@@ -65,6 +164,9 @@ func (rule *Rule) Process(input interface{}) (bool, []error) {
 	case String:
 		ok, errors = rule.evalString(input.(string))
 		break
+	case Bool:
+		ok, errors = rule.evalBoolean(input.(bool))
+		break
 	}
 
 	Log.Debug("process(...) -> %v, %v", ok, errors)
@@ -74,6 +176,12 @@ func (rule *Rule) Process(input interface{}) (bool, []error) {
 /* * * * * * * * * * * * *
   Type Eval Functions
 * * * * * * * * * * * * */
+
+func (rule *Rule) evalBoolean(val bool) (bool, []error) {
+	var errors []error
+	return true, errors
+}
+
 func (rule *Rule) evalString(val string) (bool, []error) {
 	allOk := true
 	var errors []error
@@ -108,26 +216,6 @@ func (rule *Rule) evalNumber(val interface{}) (bool, []error) {
 	var errors []error
 
 	switch val.(type) {
-	case string:
-		num, t, ok := convertStringToNumber(val.(string))
-		if !ok {
-			Log.Error("Could not convert string '%v' to number!", val)
-			err := ConversionError(val, "Number")
-			errors = []error{err}
-			return false, errors
-		} else {
-			Log.Debug("Converted %v to %v", val, num)
-			return rule.evalNumber(num)
-		}
-		switch t {
-		case Int:
-			ok, errors = rule.evalInt(num.(int))
-			break
-		case Float:
-			ok, errors = rule.evalFloat(num.(float64))
-			break
-		}
-		break
 	case int32:
 		ok, errors = rule.evalInt(int(val.(int32)))
 	case int64:
@@ -241,23 +329,22 @@ func convertStringToNumber(val string) (interface{}, int, bool) {
 	Log.Debug("convertStringToNumber <- %v", val)
 
 	var num interface{}
-	var size = 0
+	var t = 0
 	var ok = false
 
 	// first try to convert to float
 	for size := range []int{64, 32} { // try each size
 		float, err := strconv.ParseFloat(val, size)
-		if err == nil { // success
-			num, size, ok = float, Float, true
-		}
-
-		// next try int
-		integer, err := strconv.ParseInt(val, 2, size)
-		if err == nil {
-			num, size, ok = integer, Int, true
+		if err == nil { // float success
+			num, t, ok = float, Float, true
+		} else { // try int
+			integer, err := strconv.ParseInt(val, 2, size)
+			if err == nil {
+				num, t, ok = integer, Int, true
+			}
 		}
 	}
 
-	Log.Debug("convertStringToNumber -> %v, %v, %v", num, size, ok)
-	return num, size, ok
+	Log.Debug("convertStringToNumber -> %v, %v, %v", num, t, ok)
+	return num, t, ok
 }
