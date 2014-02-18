@@ -54,14 +54,8 @@ func (rb ruleBuilder) updateTypeAccordingTo(val interface{}) ruleBuilder {
 		log.Debug("Type to number")
 		rb = rb.Number()
 		break
-	case reflect.Array:
-	case reflect.Chan:
-	case reflect.Func:
-	case reflect.Interface:
-	case reflect.Map:
-	case reflect.Ptr:
-	case reflect.Slice:
 	case reflect.String:
+		log.Debug("Type to string")
 		rb = rb.String()
 		break
 	case reflect.Struct:
@@ -72,6 +66,13 @@ func (rb ruleBuilder) updateTypeAccordingTo(val interface{}) ruleBuilder {
 		break
 
 	case reflect.UnsafePointer:
+	case reflect.Array:
+	case reflect.Chan:
+	case reflect.Func:
+	case reflect.Interface:
+	case reflect.Map:
+	case reflect.Ptr:
+	case reflect.Slice:
 	default:
 		panic("Do not understand this type: " + reflect.TypeOf(val).Kind().String())
 	}
