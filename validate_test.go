@@ -12,8 +12,6 @@ func expectError(g *G, ok bool, errors []error) {
 }
 
 func TestValidate(t *testing.T) {
-	validate.SetLoggingLevel(0) // critical
-
 	g := Goblin(t)
 	g.Describe("Validation [Negative Tests]", func() {
 

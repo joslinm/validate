@@ -58,20 +58,20 @@ func (rb ruleBuilder) updateTypeAccordingTo(val interface{}) ruleBuilder {
 		Log.Debug("Type to string")
 		rb = rb.String()
 		break
-	case reflect.Struct:
-		if _, ok := val.(time.Time); ok {
+	case reflect.UnsafePointer:
+		fallthrough
+	case reflect.Ptr:
+		if _, ok := val.(*time.Time); ok {
 			Log.Debug("Type to time")
 			rb = rb.Time()
 		}
 		break
-
-	case reflect.UnsafePointer:
+	case reflect.Struct:
 	case reflect.Array:
 	case reflect.Chan:
 	case reflect.Func:
 	case reflect.Interface:
 	case reflect.Map:
-	case reflect.Ptr:
 	case reflect.Slice:
 	default:
 		panic("Do not understand this type: " + reflect.TypeOf(val).Kind().String())
@@ -150,6 +150,20 @@ func (rb ruleBuilder) Between(min interface{}, max interface{}) ruleBuilder {
 	builder.Set(rb, "Min", min)
 	builder.Set(rb, "Max", max)
 
+	return rb
+}
+
+// time
+func (rb ruleBuilder) After(t time.Time) ruleBuilder {
+	ptr := &t
+	rb = builder.Set(rb, "After", ptr).(ruleBuilder)
+	rb = rb.updateTypeAccordingTo(ptr)
+	return rb
+}
+func (rb ruleBuilder) Before(t time.Time) ruleBuilder {
+	ptr := &t
+	rb = builder.Set(rb, "Before", ptr).(ruleBuilder)
+	rb = rb.updateTypeAccordingTo(ptr)
 	return rb
 }
 

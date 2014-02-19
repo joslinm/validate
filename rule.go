@@ -19,8 +19,6 @@ const (
 	Time
 )
 
-//
-
 // Type of callbacks to be used in a Rule
 type AlterCallback func(value interface{}) interface{}
 type PrepareCallback func(value interface{}) interface{}
@@ -36,8 +34,8 @@ type Rule struct {
 	Message  string
 	Min      float64
 	Max      float64
-	Before   time.Time
-	After    time.Time
+	Before   *time.Time
+	After    *time.Time
 	In       []string
 
 	// callbacks
@@ -48,86 +46,6 @@ type Rule struct {
 	// using these since max / min get initialized to 0
 	DidSetMin bool
 	DidSetMax bool
-}
-
-func (rule *Rule) typeOkFor(input interface{}) bool {
-	var ok bool
-
-	switch rule.Type {
-	case Int:
-		_, ok = input.(int64)
-		if !ok {
-			_, ok = input.(int32)
-		}
-		break
-	case Float:
-		_, ok = input.(float64)
-		if !ok {
-			_, ok = input.(float32)
-		}
-		break
-	case Number:
-		_, ok = input.(float64)
-		if !ok {
-			_, ok = input.(float32)
-		}
-		if !ok {
-			_, ok = input.(int64)
-		}
-		if !ok {
-			_, ok = input.(int32)
-		}
-		break
-	case String:
-		_, ok = input.(string)
-		break
-	case Bool:
-		_, ok = input.(bool)
-		break
-	}
-
-	return ok
-}
-
-func (rule *Rule) convertString(input string) (interface{}, bool) {
-	Log.Debug("convertString <- %v", input)
-
-	var converted interface{}
-	var ok bool
-
-	switch rule.Type {
-	case Bool:
-		val, err := strconv.ParseBool(input)
-		ok = err == nil
-		converted = val
-		Log.Debug("Tried to convert bool '%v' to '%v': succeeded? %v", input, converted, ok)
-		break
-	case Int:
-		fallthrough
-	case Float:
-		fallthrough
-	case Number:
-		var num interface{}
-		var t int
-		num, t, ok = convertStringToNumber(input)
-		if !ok {
-			Log.Error("Could not convert string '%v' to number!", input)
-		} else {
-			switch t {
-			case Int:
-				converted = num.(int)
-				break
-			case Float:
-				converted = num.(float64)
-				break
-			}
-			Log.Debug("Converted %v to %v", input, converted)
-		}
-		break
-	}
-
-	Log.Debug("convertString -> %v, %v", converted, ok)
-	return converted, ok
 }
 
 // Validates an input
@@ -167,6 +85,9 @@ func (rule *Rule) Process(input interface{}) (bool, []error) {
 	case Bool:
 		ok, errors = rule.evalBoolean(input.(bool))
 		break
+	case Time:
+		ok, errors = rule.evalTime(input.(time.Time))
+		break
 	}
 
 	Log.Debug("process(...) -> %v, %v", ok, errors)
@@ -177,9 +98,36 @@ func (rule *Rule) Process(input interface{}) (bool, []error) {
   Type Eval Functions
 * * * * * * * * * * * * */
 
-func (rule *Rule) evalBoolean(val bool) (bool, []error) {
+func (rule *Rule) evalTime(val time.Time) (bool, []error) {
+	allOk := true
 	var errors []error
-	return true, errors
+
+	if rule.After != nil {
+		ok, err := rule.evalAfter(val)
+		if !ok {
+			Log.Debug("Given time (%v) failed after test", val)
+			errors = append(errors, err)
+			allOk = false
+		} else {
+			Log.Debug("Given time (%v) > (%v) -- SUCCESS", val, *rule.After)
+		}
+	}
+	if rule.Before != nil {
+		ok, err := rule.evalBefore(val)
+		if !ok {
+			Log.Debug("Given time (%v) failed after test", val)
+			errors = append(errors, err)
+			allOk = false
+		} else {
+			Log.Debug("Given time (%v) < (%v) -- SUCCESS", val, *rule.Before)
+		}
+	}
+
+	return allOk, errors
+}
+
+func (rule *Rule) evalBoolean(val bool) (bool, []error) {
+	return true, []error{}
 }
 
 func (rule *Rule) evalString(val string) (bool, []error) {
@@ -259,6 +207,30 @@ func (rule *Rule) evalFloat(val float64) (bool, []error) {
 /* * * * * * * * * * * * *
   Rule Eval Functions
 * * * * * * * * * * * * */
+func (rule *Rule) evalBefore(val time.Time) (bool, error) {
+	ok := true
+	var err error
+
+	if val.After(*rule.Before) {
+		ok = false
+		err = fmt.Errorf("[%v] is AFTER %v (expecting it to be BEFORE)", val, rule.Before)
+	}
+
+	return ok, err
+}
+
+func (rule *Rule) evalAfter(val time.Time) (bool, error) {
+	ok := true
+	var err error
+
+	if val.Before(*rule.After) {
+		ok = false
+		err = fmt.Errorf("[%v] is BEFORE %v (expecting it to be AFTER)", val, rule.After)
+	}
+
+	return ok, err
+}
+
 func (rule *Rule) evalIn(val string) (bool, error) {
 	ok := false
 	err := fmt.Errorf("[%v] not in %v", val, rule.In)
@@ -324,6 +296,91 @@ func (rule *Rule) evalMax(val float64) (bool, error) {
 /* * * * * * * * * * * * *
   Helper Functions
 * * * * * * * * * * * * */
+func (rule *Rule) typeOkFor(input interface{}) bool {
+	var ok bool
+
+	switch rule.Type {
+	case Int:
+		_, ok = input.(int64)
+		if !ok {
+			_, ok = input.(int32)
+		}
+		break
+	case Float:
+		_, ok = input.(float64)
+		if !ok {
+			_, ok = input.(float32)
+		}
+		break
+	case Number:
+		_, ok = input.(float64)
+		if !ok {
+			_, ok = input.(float32)
+		}
+		if !ok {
+			_, ok = input.(int64)
+		}
+		if !ok {
+			_, ok = input.(int32)
+		}
+		break
+	case String:
+		_, ok = input.(string)
+		break
+	case Bool:
+		_, ok = input.(bool)
+		break
+	case Time:
+		_, ok = input.(time.Time)
+		if !ok {
+			_, ok = input.(*time.Time)
+		}
+		break
+	}
+
+	return ok
+}
+
+func (rule *Rule) convertString(input string) (interface{}, bool) {
+	Log.Debug("convertString <- %v", input)
+
+	var converted interface{}
+	var ok bool
+
+	switch rule.Type {
+	case Bool:
+		val, err := strconv.ParseBool(input)
+		ok = err == nil
+		converted = val
+		Log.Debug("Tried to convert bool '%v' to '%v': succeeded? %v", input, converted, ok)
+		break
+	case Int:
+		fallthrough
+	case Float:
+		fallthrough
+	case Number:
+		var num interface{}
+		var t int
+		num, t, ok = convertStringToNumber(input)
+		if !ok {
+			Log.Error("Could not convert string '%v' to number!", input)
+		} else {
+			switch t {
+			case Int:
+				converted = num.(int)
+				break
+			case Float:
+				converted = num.(float64)
+				break
+			}
+			Log.Debug("Converted %v to %v", input, converted)
+		}
+		break
+	}
+
+	Log.Debug("convertString -> %v, %v", converted, ok)
+	return converted, ok
+}
 
 func convertStringToNumber(val string) (interface{}, int, bool) {
 	Log.Debug("convertStringToNumber <- %v", val)
