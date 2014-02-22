@@ -1,55 +1,67 @@
 package validate
 
 import (
-	"github.com/op/go-logging"
-	_ "net/http"
-	"reflect"
+  "github.com/op/go-logging"
+  "net/http"
+  "reflect"
 )
 
-type RuleBook map[string]ruleBuilder
+type RuleBook map[string]interface{}
 
 var Log = logging.MustGetLogger("validate")
 
 type ValidationData struct {
-	data map[string]interface{}
+  data interface{}
 }
 
-func Data(data map[string]interface{}) *ValidationData {
-	return &ValidationData{data: data}
+func Validate(data map[string]interface{}) *ValidationData {
+  return &ValidationData{data: data}
 }
 
 func (v *ValidationData) With(rules RuleBook) (interface{}, map[string][]error) {
-	return Map(v.data, rules)
+  if _, ok := v.data.(*http.Request); ok {
+    return Request(v.data.(*http.Request), rules)
+  } else {
+    return Map(v.data.(map[string]interface{}), rules)
+  }
 }
 
 func sameType(vals ...interface{}) bool {
-	expectedType := reflect.TypeOf(vals[0]).Kind()
-	for _, val := range vals {
-		if expectedType != reflect.TypeOf(val).Kind() {
-			return false
-		}
-	}
+  expectedType := reflect.TypeOf(vals[0]).Kind()
+  for _, val := range vals {
+    if expectedType != reflect.TypeOf(val).Kind() {
+      return false
+    }
+  }
 
-	return true
+  return true
+}
+
+func Request(given *http.Request, expected RuleBook) (map[string]interface{}, map[string][]error) {
+  // TODO
+  return nil, nil
 }
 
 func Map(given map[string]interface{}, expected RuleBook) (map[string]interface{}, map[string][]error) {
-	params := make(map[string]interface{})
-	paramErrors := make(map[string][]error)
-	Log.Debug("Input: %v", given)
+  params := make(map[string]interface{})
+  paramErrors := make(map[string][]error)
 
-	for k, v := range expected {
-		rule := v.Build()
-		if ok, errors := rule.Process(given[k]); !ok {
-			Log.Debug(": %v", given)
-			paramErrors[k] = errors
-		}
-		params[k] = v
-	}
+  for k, v := range expected {
+    builder, ok := v.(ruleBuilder)
+    if ok {
+      rule := builder.Build()
+      input, errors := rule.Process(given[k])
+      if errors != nil {
+        paramErrors[k] = errors
+      } else {
+        params[k] = input
+      }
+    }
+  }
 
-	return params, paramErrors
+  return params, paramErrors
 }
 
 func SetLoggingLevel(level logging.Level) {
-	logging.SetLevel(level, "validate")
+  logging.SetLevel(level, "validate")
 }
