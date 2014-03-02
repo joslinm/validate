@@ -56,15 +56,15 @@ func (rule *Rule) Process(input interface{}) (interface{}, []error) {
 	var retInput = input
 
 	// type check
-	retInput, ok = rule.TypeOkFor(input)
+	coercedInput, ok := rule.TypeOkFor(input)
 	if !ok { // failed type check
 		msg := fmt.Sprintf("Bad input type. Expecting type %v. Got: %v", rule.Type, reflect.TypeOf(retInput))
 		errors = append(errors, fmt.Errorf(msg))
 
 		Log.Warning(msg)
-		retInput = nil
 	} else {
 		Log.Info("Input '%v' type is: %v", reflect.ValueOf(retInput), reflect.TypeOf(retInput))
+		retInput = coercedInput
 
 		// route return values by type
 		switch rule.Type {
@@ -290,41 +290,39 @@ func (rule *Rule) evalMax(val float64) (bool, error) {
 	return ok, err
 }
 
-/* * * * * * * * * * * * *
-  Helper Functions
-* * * * * * * * * * * * */
 func (rule *Rule) TypeOkFor(input interface{}) (interface{}, bool) {
 	var ok bool
+	var retInput interface{}
 
 	switch rule.Type {
 	case Int:
-		_, ok = input.(int)
+		retInput, ok = input.(int)
 		if !ok {
-			_, ok = input.(int32)
+			retInput, ok = input.(int32)
 		}
 		if !ok {
-			_, ok = input.(int64)
+			retInput, ok = input.(int64)
 		}
 		break
 	case Float:
-		_, ok = input.(float64)
+		retInput, ok = input.(float64)
 		if !ok {
-			_, ok = input.(float32)
+			retInput, ok = input.(float32)
 		}
 		break
 	case Number:
-		_, ok = input.(float64)
+		retInput, ok = input.(float64)
 		if !ok {
-			_, ok = input.(float32)
+			retInput, ok = input.(float32)
 		}
 		if !ok {
-			_, ok = input.(int)
+			retInput, ok = input.(int)
 		}
 		if !ok {
-			_, ok = input.(int64)
+			retInput, ok = input.(int64)
 		}
 		if !ok {
-			_, ok = input.(int32)
+			retInput, ok = input.(int32)
 		}
 		if !ok {
 			Log.Warning("Could not convert %v OF TYPE %v to a number!! (tried float32, float64, int32, int64, int)", input, reflect.TypeOf(input))
@@ -333,44 +331,57 @@ func (rule *Rule) TypeOkFor(input interface{}) (interface{}, bool) {
 		}
 		break
 	case String:
-		_, ok = input.(string)
+		retInput, ok = input.(string)
 		break
 	case Bool:
-		_, ok = input.(bool)
+		retInput, ok = input.(bool)
 		break
 	case Time:
-		_, ok = input.(time.Time)
+		retInput, ok = input.(time.Time)
 		if !ok {
-			_, ok = input.(*time.Time)
+			retInput, ok = input.(*time.Time)
 		}
 		break
 	}
 
-	if _, isString := input.(string); !ok && isString && rule.Type != String { // try to convert a number/time/boolean string
+	// check if string
+	_, isString := input.(string)
+	if !ok && isString && rule.Type != String {
+		// try to convert a number/time/boolean string
 		Log.Debug("Trying to convert string (%v) to %v", input, rule.Type)
-		input = rule.convertString(input.(string))
-		if input != nil {
-			return rule.TypeOkFor(input)
+		retInput = rule.convertString(input.(string))
+		if retInput != nil {
+			return rule.TypeOkFor(retInput)
 		}
 	}
 
-	return input, ok
+	return retInput, ok
 }
 
+/* * * * * * * * * * * * *
+  Helper Functions
+* * * * * * * * * * * * */
 func (rule *Rule) convertString(input string) interface{} {
 	Log.Debug("convertString <- %v", input)
 	var converted interface{}
 	var ok bool
+	var err error
 
 	switch rule.Type {
 	case Bool:
-		converted, err := strconv.ParseBool(input)
-		Log.Debug("Tried to convert bool '%v' to '%v': succeeded? %v", input, converted, err != nil)
+		converted, err = strconv.ParseBool(input)
+		Log.Debug("Tried to convert bool '%v' to '%v': succeeded? %v", input, converted, err == nil)
+		if err != nil {
+			Log.Warning("Got error trying to convert '%v' to boolean:\n%v", input, err)
+			converted = nil
+		}
 		break
 	case Int:
 		fallthrough
 	case Float:
 		fallthrough
+	case Time:
+		converted, _ = time.Parse(input, input)
 	case Number:
 		var num interface{}
 		var t int

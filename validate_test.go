@@ -7,10 +7,6 @@ import (
 	"testing"
 )
 
-func expectError(g *G, errors []error) {
-	g.Assert(len(errors) > 0).IsTrue()
-}
-
 func TestValidate(t *testing.T) {
 	g := Goblin(t)
 	g.Describe("Validate", func() {
