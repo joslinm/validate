@@ -376,12 +376,20 @@ func (rule *Rule) convertString(input string) interface{} {
 			converted = nil
 		}
 		break
+	case Time:
+		converted, err = time.Parse(input, input)
+		timeConvert, _ := converted.(time.Time)
+		Log.Debug("GOT TIME CONVERT --> %v", timeConvert)
+		if timeConvert.Year() == 0 && timeConvert.Month() == 1 && timeConvert.Day() == 1 {
+			// reject a zero'd date (1/1/0000)
+			converted = nil
+			ok = false
+		}
+		break
 	case Int:
 		fallthrough
 	case Float:
 		fallthrough
-	case Time:
-		converted, _ = time.Parse(input, input)
 	case Number:
 		var num interface{}
 		var t int

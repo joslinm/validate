@@ -18,7 +18,7 @@ func Validate(data map[string]interface{}) *ValidationData {
 	return &ValidationData{data: data}
 }
 
-func (v *ValidationData) With(rules RuleBook) (interface{}, map[string][]error) {
+func (v *ValidationData) With(rules RuleBook) (map[string]interface{}, map[string][]error) {
 	if _, ok := v.data.(*http.Request); ok {
 		return Request(v.data.(*http.Request), rules)
 	} else {
