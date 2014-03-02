@@ -17,8 +17,7 @@ func TestValidate(t *testing.T) {
 				}).With(validate.RuleBook{
 					"x": validate.RB.Min(5),
 				})
-				fmt.Println("Params\n", params)
-				fmt.Println("Param Errors\n", paramErrors)
+				g.Assert(len(paramErrors["x"])).Equal(1)
 			})
 			g.Describe("http.Request", func() {
 			})
